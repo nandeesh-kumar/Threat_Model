@@ -1,0 +1,28 @@
+flowchart LR
+    CWB["Customer web browser"]
+    MS(("Merchant system"))
+    PGA(("Payment gateway API"))
+    PPS(("Payment processing system"))
+    AQ(("Aquirer"))
+    LOGS[("API logs")]
+    DB[("Database")]
+
+    CWB --> MS
+    MS --> PGA
+    PGA --> PPS
+    PPS --> AQ
+
+    PGA -.-> LOGS
+
+    PPS -- "sensitive data" --> DB
+
+    subgraph TB1[Trust Boundary]
+    end
+    subgraph TB2[Trust Boundary]
+    end
+    subgraph TB3[Trust Boundary]
+    end
+    subgraph TB4[Trust Boundary]
+    end
+
+    linkStyle 5 stroke:#cc0000,stroke-width:2px

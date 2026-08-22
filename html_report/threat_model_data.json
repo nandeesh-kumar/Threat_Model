@@ -1,0 +1,260 @@
+{
+  "title": "STRIDE Threat Model Report",
+  "system_name": "Customer Portal",
+  "version": "1.0",
+  "author": "Security Engineering",
+  "description": "Sample model for a Customer Portal. External entity E1 Customer uses HTTPS (DF1) to reach process P1 Web Application inside the cloud trust boundary. P1 validates sessions with P2 Auth Service (DF2), reads and writes PII in DS1 (DF3), writes audit events to DS2 (DF4), and enqueues mail on DS3 (DF5). DS3 delivers messages to external entity E2 Email Provider (DF6).",
+  "assumptions": [
+    "TLS is enforced on DF1 and DF6.",
+    "P1 is the only process allowed to read and write DS1.",
+    "DS2 is append-oriented and not exposed on the internet.",
+    "E2 is a contracted SaaS mail provider."
+  ],
+  "assets": [
+    "Customer PII in DS1",
+    "Session tokens handled by P2",
+    "Audit history in DS2",
+    "Notification content on DF5 and DF6"
+  ],
+  "trust_boundaries": [
+    "Internet to cloud: DF1 (E1 to P1)",
+    "Cloud to internet: DF6 (DS3 to E2)",
+    "P1 to DS1 (data store access)",
+    "P1 to P2 (session validation)"
+  ],
+  "components": [
+    "E1 Customer",
+    "E2 Email Provider",
+    "P1 Web Application",
+    "P2 Auth Service",
+    "DS1 Customer Database",
+    "DS2 Audit Logs",
+    "DS3 Notification Queue"
+  ],
+  "dfd_elements": [
+    {
+      "id": "E1",
+      "name": "Customer",
+      "kind": "External entity",
+      "notes": "Browser user outside the cloud trust boundary"
+    },
+    {
+      "id": "E2",
+      "name": "Email Provider",
+      "kind": "External entity",
+      "notes": "Third-party mail delivery"
+    },
+    {
+      "id": "P1",
+      "name": "Web Application",
+      "kind": "Process",
+      "notes": "Login, profile, and ticket use cases"
+    },
+    {
+      "id": "P2",
+      "name": "Auth Service",
+      "kind": "Process",
+      "notes": "Issues and validates sessions"
+    },
+    {
+      "id": "DS1",
+      "name": "Customer Database",
+      "kind": "Data store",
+      "notes": "PII and ticket records"
+    },
+    {
+      "id": "DS2",
+      "name": "Audit Logs",
+      "kind": "Data store",
+      "notes": "Security and change history"
+    },
+    {
+      "id": "DS3",
+      "name": "Notification Queue",
+      "kind": "Data store",
+      "notes": "Outbound email jobs"
+    }
+  ],
+  "data_flows": [
+    {
+      "id": "DF1",
+      "source": "E1 Customer",
+      "destination": "P1 Web Application",
+      "label": "HTTPS login and account actions",
+      "data": "Credentials, session cookie, form data"
+    },
+    {
+      "id": "DF2",
+      "source": "P1 Web Application",
+      "destination": "P2 Auth Service",
+      "label": "Validate session",
+      "data": "Session token"
+    },
+    {
+      "id": "DF3",
+      "source": "P1 Web Application",
+      "destination": "DS1 Customer Database",
+      "label": "Read write PII",
+      "data": "Customer records, tickets"
+    },
+    {
+      "id": "DF4",
+      "source": "P1 Web Application",
+      "destination": "DS2 Audit Logs",
+      "label": "Write audit events",
+      "data": "Actor, action, timestamp"
+    },
+    {
+      "id": "DF5",
+      "source": "P1 Web Application",
+      "destination": "DS3 Notification Queue",
+      "label": "Enqueue email job",
+      "data": "Email payload"
+    },
+    {
+      "id": "DF6",
+      "source": "DS3 Notification Queue",
+      "destination": "E2 Email Provider",
+      "label": "Send email",
+      "data": "To address, message body"
+    }
+  ],
+  "threats": [
+    {
+      "id": "T-001",
+      "title": "Attacker spoofs a customer on DF1",
+      "stride": "Spoofing",
+      "element": "E1 Customer to P1 Web Application",
+      "dfd_ref": "DF1, E1",
+      "description": "DF1 crosses the internet trust boundary. Stolen passwords or session cookies let an attacker present as E1 and operate P1 as that customer.",
+      "impact": "Unauthorised use of the account and PII in DS1.",
+      "likelihood": "Medium",
+      "risk": "High",
+      "mitigations": [
+        "MFA at login and short-lived HttpOnly Secure SameSite cookies.",
+        "Step-up authentication for email and profile changes.",
+        "Revoke sessions on password reset and logout."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-002",
+      "title": "Request body on DF1 is tampered with",
+      "stride": "Tampering",
+      "element": "DF1 HTTPS login and account actions",
+      "dfd_ref": "DF1, P1",
+      "description": "If P1 trusts client fields such as account id or ticket id on DF1, an attacker can alter the payload in the browser or a proxy.",
+      "impact": "Integrity loss of DS1 records and possible cross-account writes.",
+      "likelihood": "Medium",
+      "risk": "High",
+      "mitigations": [
+        "Do not use client-supplied ids for authorisation.",
+        "Schema-validate every write into P1.",
+        "Confirm the session subject owns the target record."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-003",
+      "title": "Actions cannot be proven because DS2 is incomplete",
+      "stride": "Repudiation",
+      "element": "P1 Web Application to DS2 Audit Logs",
+      "dfd_ref": "DF4, DS2, P1",
+      "description": "If DF4 is missing or DS2 can be overwritten, a customer or insider can deny a profile change or ticket.",
+      "impact": "Investigations and disputes cannot be reconstructed.",
+      "likelihood": "Medium",
+      "risk": "Medium",
+      "mitigations": [
+        "Append-only DF4 events with actor, action, and before/after values.",
+        "Restrict delete rights on DS2.",
+        "Alert when DS1 changes have no matching DF4 event."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-004",
+      "title": "PII leaks from DS1 over DF3 or DF1",
+      "stride": "Information Disclosure",
+      "element": "DS1 Customer Database",
+      "dfd_ref": "DS1, DF3, DF1",
+      "description": "DS1 holds PII. Over-broad DF3 reads or verbose DF1 errors can expose another customer's data. Backup or IAM mistakes on DS1 are in scope.",
+      "impact": "Privacy breach and regulatory exposure.",
+      "likelihood": "Medium",
+      "risk": "High",
+      "mitigations": [
+        "Encrypt DS1 at rest; least-privilege access for P1 only.",
+        "Filter DF1 responses by field and role.",
+        "Return generic errors to E1; keep detail in DS2."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-005",
+      "title": "DF5 and DS3 are flooded with email jobs",
+      "stride": "Denial of Service",
+      "element": "DS3 Notification Queue",
+      "dfd_ref": "DF5, DS3, P1",
+      "description": "P1 always enqueues DF5 after DF1 ticket or notify requests. A scripted user can fill DS3, delay DF6, and starve P1 workers.",
+      "impact": "Delayed mail and degraded portal availability.",
+      "likelihood": "Medium",
+      "risk": "Medium",
+      "mitigations": [
+        "Rate-limit DF1 before writing DF5.",
+        "Alert on DS3 depth and apply back-pressure.",
+        "Cap tickets and emails per account per hour."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-006",
+      "title": "P1 missing object-level authorisation on DF3",
+      "stride": "Elevation of Privilege",
+      "element": "P1 Web Application",
+      "dfd_ref": "P1, DF3, DS1",
+      "description": "P1 maps DF1 to DF3. If it only checks that a session exists, a customer can read or change another row in DS1 (IDOR).",
+      "impact": "Cross-customer data access.",
+      "likelihood": "Medium",
+      "risk": "Critical",
+      "mitigations": [
+        "Authorise every DF3 read and write against the authenticated subject.",
+        "Use opaque ids and automated IDOR tests.",
+        "P2 must bind the session to a customer id that DF1 cannot override."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-007",
+      "title": "Forged session accepted on DF2",
+      "stride": "Spoofing",
+      "element": "P2 Auth Service",
+      "dfd_ref": "DF2, P2",
+      "description": "If P2 accepts unsigned or weakly signed tokens on DF2, an attacker can mint a session and impersonate any customer in P1.",
+      "impact": "Account takeover without E1 credentials.",
+      "likelihood": "Low",
+      "risk": "Critical",
+      "mitigations": [
+        "Pin token algorithms; validate issuer, audience, and expiry.",
+        "Prefer server-side session state.",
+        "Rotate signing keys and reject tokens after logout."
+      ],
+      "status": "Open"
+    },
+    {
+      "id": "T-008",
+      "title": "DF6 discloses ticket content to the wrong inbox",
+      "stride": "Information Disclosure",
+      "element": "E2 Email Provider",
+      "dfd_ref": "DF6, DS3, E2",
+      "description": "DF6 leaves the trust boundary. An attacker-controlled address in DS3, or full PII in the body, sends DS1 data out through E2.",
+      "impact": "PII and ticket content delivered to an attacker mailbox.",
+      "likelihood": "Medium",
+      "risk": "High",
+      "mitigations": [
+        "Verify email changes to both old and new addresses.",
+        "Minimise PII in DF6; prefer portal links.",
+        "Use an authenticated API to E2; do not log full mail bodies."
+      ],
+      "status": "Open"
+    }
+  ]
+}

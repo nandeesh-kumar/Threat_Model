@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$title — $system_name</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --ink: #1c2430;
+      --muted: #5b6775;
+      --line: #d7dde5;
+      --accent: #1f6feb;
+      --critical: #b42318;
+      --high: #c2410c;
+      --medium: #b45309;
+      --low: #17803d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    header.page {
+      background: linear-gradient(135deg, #0f2744, #1f6feb);
+      color: #fff;
+      padding: 2rem 1.5rem 1.25rem;
+    }
+    header.page h1 { margin: 0 0 0.35rem; font-size: 1.7rem; }
+    header.page p { margin: 0.15rem 0; opacity: 0.92; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    .tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 1rem;
+    }
+    .tabs button {
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      font: inherit;
+      color: var(--muted);
+      border-radius: 8px 8px 0 0;
+    }
+    .tabs button.active {
+      color: var(--accent);
+      background: var(--card);
+      border-color: var(--line);
+      border-bottom-color: var(--card);
+      font-weight: 600;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+    h2 { margin: 0 0 0.75rem; font-size: 1.15rem; }
+    h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .stats { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.8rem;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--muted); }
+    .stat-value { font-size: 1.4rem; font-weight: 700; }
+    .chip, .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #1f4b99;
+      font-size: 0.78rem;
+      margin: 0.15rem 0.2rem 0.15rem 0;
+    }
+    .risk-critical { background: #fee4e2; color: var(--critical); }
+    .risk-high { background: #ffedd5; color: var(--high); }
+    .risk-medium { background: #fef3c7; color: var(--medium); }
+    .risk-low { background: #dcfce7; color: var(--low); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.55rem 0.45rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.02em; }
+    .threat-card header { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .threat-card h3 { margin: 0 0 0.4rem; font-size: 1.02rem; }
+    .split { display: grid; gap: 0.5rem; grid-template-columns: 1fr 1fr; }
+    .dfd-source svg, .dfd-source > svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #fff;
+    }
+    .mermaid-source {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink);
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    footer { color: var(--muted); font-size: 0.85rem; padding: 0 0 2rem; }
+    a { color: var(--accent); }
+    @media (max-width: 700px) {
+      .split { grid-template-columns: 1fr; }
+    }
+    .threat-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 6px solid var(--accent);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(15, 39, 68, 0.04);
+    }
+    .threat-card.risk-critical { border-left-color: var(--critical); }
+    .threat-card.risk-high { border-left-color: var(--high); }
+    .threat-card.risk-medium { border-left-color: var(--medium); }
+    .threat-card.risk-low { border-left-color: var(--low); }
+    .threat-editor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+    .threat-field {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.6rem 0.7rem;
+      font: inherit;
+      background: #fff;
+      margin-top: 0.35rem;
+    }
+    .threat-field:focus {
+      outline: 2px solid rgba(31, 111, 235, 0.2);
+      border-color: var(--accent);
+    }
+    .threat-card label {
+      display: block;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 0.8rem;
+    }
+    .threat-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: end;
+      margin-top: 0.75rem;
+    }
+    .threat-toolbar label,
+    .threat-toolbar button,
+    .threat-toolbar .import-button {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .threat-toolbar select,
+    .threat-toolbar button,
+    .threat-toolbar .import-button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font: inherit;
+      background: #fff;
+      color: var(--ink);
+    }
+    .threat-toolbar button,
+    .threat-toolbar .import-button {
+      cursor: pointer;
+    }
+    .hidden-input { display: none; }
+    .threat-card.hidden { display: none; }
+    .save-status {
+      min-height: 1.2rem;
+      font-size: 0.82rem;
+      color: var(--low);
+      margin-top: 0.25rem;
+    }
+    .threat-toolbar .import-button {
+      align-items: center;
+      justify-content: center;
+    }
+    .summary-toolbar {
+      margin-bottom: 0.5rem;
+    }
+    .summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .summary-row {
+      display: grid;
+      grid-template-columns: 170px 1fr 56px;
+      gap: 0.75rem;
+      align-items: center;
+      font-size: 0.92rem;
+    }
+    .summary-row strong {
+      color: var(--ink);
+    }
+    .summary-bar {
+      position: relative;
+      height: 12px;
+      background: #edf2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+    .summary-bar > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #1f6feb, #75a8ff);
+      border-radius: 999px;
+    }
+    .summary-row .summary-total {
+      color: var(--muted);
+      text-align: right;
+      font-weight: 700;
+    }
+    .summary-empty {
+      color: var(--muted);
+      padding: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <div class="wrap">
+      <h1>$title</h1>
+      <p><strong>System:</strong> $system_name &nbsp;|&nbsp; <strong>Version:</strong> $version</p>
+      <p><strong>Author:</strong> $author &nbsp;|&nbsp; <strong>Generated:</strong> $generated</p>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="tabs" role="tablist">
+      <button class="active" role="tab" aria-selected="true" data-tab="description">Description</button>
+      <button role="tab" aria-selected="false" data-tab="summary">Threat Summary</button>
+      <button role="tab" aria-selected="false" data-tab="dfd">Data Flow Diagram</button>
+      <button role="tab" aria-selected="false" data-tab="threats">Threats</button>
+    </nav>
+
+    <section id="description" class="panel active" role="tabpanel">
+      <div class="card">
+        <h2>System description</h2>
+        <p>$description</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h2>Assumptions</h2>
+          <ul>$assumption_items</ul>
+        </div>
+        <div class="card">
+          <h2>Assets</h2>
+          <ul>$asset_items</ul>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Trust boundaries</h2>
+        <ul>$boundary_items</ul>
+      </div>
+      <div class="card">
+        <h2>In-scope components</h2>
+        <div>$component_chips</div>
+      </div>
+    </section>
+
+    <section id="summary" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Overview</h2>
+        <div class="stats">
+          <div class="stat-card"><div class="stat-label">Total threats</div><div class="stat-value">$total_threats</div></div>
+          <div class="stat-card"><div class="stat-label">Open</div><div class="stat-value">$open_count</div></div>
+          <div class="stat-card risk-critical"><div class="stat-label">Critical</div><div class="stat-value">$critical_count</div></div>
+          <div class="stat-card risk-high"><div class="stat-label">High</div><div class="stat-value">$high_count</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Management summary</h2>
+        <div class="threat-toolbar summary-toolbar">
+          <label>
+            STRIDE filter
+            <select id="summaryStrideFilter">
+              <option value="all">All categories</option>
+              <option value="Spoofing">Spoofing</option>
+              <option value="Tampering">Tampering</option>
+              <option value="Repudiation">Repudiation</option>
+              <option value="Information Disclosure">Information Disclosure</option>
+              <option value="Denial of Service">Denial of Service</option>
+              <option value="Elevation of Privilege">Elevation of Privilege</option>
+            </select>
+          </label>
+          <label>
+            Status filter
+            <select id="summaryStatusFilter">
+              <option value="all">All statuses</option>
+              <option value="Open">Open</option>
+              <option value="Mitigated">Mitigated</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </label>
+          <label>
+            Owner filter
+            <select id="summaryOwnerFilter">
+              <option value="all">All owners</option>
+            </select>
+          </label>
+        </div>
+        <div id="summaryMetrics" class="stats"></div>
+      </div>
+      <div class="card">
+        <h2>Threat mix by STRIDE</h2>
+        <div id="strideSummaryChart" class="summary-list"></div>
+      </div>
+      <div class="card">
+        <h2>Threat states</h2>
+        <div id="statusSummaryChart" class="summary-list"></div>
+      </div>
+      <div class="card">
+        <h2>Owner accountability</h2>
+        <div id="ownerSummaryChart" class="summary-list"></div>
+      </div>
+    </section>
+
+    <section id="dfd" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Data flow diagrams</h2>
+        <p>Rendered from every Mermaid file in <code>mermaid-dfd</code>. Each diagram is loaded and displayed in this report.</p>
+      </div>
+      $dfd_cards
+      <div class="card">
+        <h2>DFD elements</h2>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Name</th><th>Type</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            $element_rows
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Data flows</h2>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Source</th><th>Destination</th><th>Flow</th><th>Data</th></tr>
+          </thead>
+          <tbody>
+            $flow_rows
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="threats" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Threats derived from the sample DFD</h2>
+        <p>Each item maps to a DFD process, store, entity, or flow (see the DFD ref badge). Apply STRIDE per element: spoofing on entities and DF1/DF2, tampering on flows, repudiation on DS2, information disclosure on DS1/DF6, denial of service on DS3, elevation of privilege on P1.</p>
+      </div>
+      <div class="card">
+        <h2>Threat controls</h2>
+        <div class="threat-toolbar">
+          <label>
+            STRIDE filter
+            <select id="strideFilter">
+              <option value="all">All categories</option>
+              <option value="Spoofing">Spoofing</option>
+              <option value="Tampering">Tampering</option>
+              <option value="Repudiation">Repudiation</option>
+              <option value="Information Disclosure">Information Disclosure</option>
+              <option value="Denial of Service">Denial of Service</option>
+              <option value="Elevation of Privilege">Elevation of Privilege</option>
+            </select>
+          </label>
+          <label>
+            Status filter
+            <select id="statusFilter">
+              <option value="all">All statuses</option>
+              <option value="Open">Open</option>
+              <option value="Mitigated">Mitigated</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </label>
+          <button type="button" id="exportCsvBtn">Export CSV</button>
+          <label class="import-button">
+            Import CSV
+            <input id="importCsvInput" class="hidden-input" type="file" accept=".csv" />
+          </label>
+          <button type="button" id="saveThreatsBtn">Save changes</button>
+          <button type="button" id="downloadHtmlBtn">Save HTML</button>
+        </div>
+        <div id="saveStatus" class="save-status" aria-live="polite"></div>
+      </div>
+      <div id="threatList">$threat_details</div>
+    </section>
+
+    <footer>STRIDE report generated locally. Model JSON is embedded for traceability.</footer>
+    <script id="threat-model-json" type="application/json">$model_json</script>
+  </div>
+  <script>$mermaid_bundle</script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function () {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "neutral",
+        securityLevel: "loose",
+        flowchart: { htmlLabels: false, curve: "basis" }
+      });
+
+      const STORAGE_KEY = "strideThreatModelState";
+
+      async function renderDfd() {
+        const nodes = document.querySelectorAll(".dfd-source");
+        for (const el of nodes) {
+          if (el.dataset.rendered === "true") continue;
+          try {
+            await mermaid.run({ nodes: [el] });
+            el.dataset.rendered = "true";
+          } catch (err) {
+            el.replaceWith(document.createComment("mermaid skipped"));
+          }
+        }
+      }
+
+      function updateSaveStatus(message) {
+        const statusEl = document.getElementById("saveStatus");
+        if (!statusEl) return;
+        statusEl.textContent = message;
+      }
+
+      function getOwnerLabel(value) {
+        const owner = (value || "").trim();
+        return owner || "Unassigned";
+      }
+
+      function getThreatCards() {
+        return [...document.querySelectorAll(".threat-card")];
+      }
+
+      function getThreatOwner(card) {
+        const field = card.querySelector('[data-field="owner"]');
+        const value = field ? field.value : (card.dataset.owner || "");
+        return getOwnerLabel(value);
+      }
+
+      function updateThreatCardMetadata(card) {
+        const ownerField = card.querySelector('[data-field="owner"]');
+        const statusField = card.querySelector('[data-field="status"]');
+        const remarksField = card.querySelector('[data-field="remarks"]');
+        const ownerValue = ownerField ? ownerField.value : (card.dataset.owner || "");
+        const statusValue = statusField ? statusField.value : (card.dataset.status || "Open");
+        const remarksValue = remarksField ? remarksField.value : (card.dataset.remarks || "");
+        card.dataset.owner = ownerValue;
+        card.dataset.status = statusValue;
+        card.dataset.remarks = remarksValue;
+        const badgeNodes = card.querySelectorAll(".badge");
+        if (badgeNodes.length >= 4) badgeNodes[3].textContent = statusValue;
+      }
+
+      function refreshSummaryOwnerOptions() {
+        const select = document.getElementById("summaryOwnerFilter");
+        if (!select) return;
+        const owners = [...new Set(getThreatCards().map((card) => getThreatOwner(card)))].sort((a, b) => a.localeCompare(b));
+        const current = select.value;
+        const options = ['<option value="all">All owners</option>'];
+        owners.forEach((owner) => {
+          options.push(`<option value="${owner}">${owner}</option>`);
+        });
+        select.innerHTML = options.join("");
+        if (owners.includes(current)) {
+          select.value = current;
+        } else {
+          select.value = "all";
+        }
+      }
+
+      function buildSummaryRows(labelMap, total, maxValue) {
+        return Object.entries(labelMap)
+          .sort(([, a], [, b]) => b - a)
+          .map(([label, count]) => {
+            const width = maxValue ? Math.max((count / maxValue) * 100, 8) : 0;
+            return `
+              <div class="summary-row">
+                <strong>${label}</strong>
+                <div class="summary-bar"><span style="width: ${width}%"></span></div>
+                <div class="summary-total">${count}</div>
+              </div>
+            `;
+          })
+          .join("") || '<div class="summary-empty">No matching threats.</div>';
+      }
+
+      function updateSummary() {
+        const cards = getThreatCards();
+        const strideFilter = document.getElementById("summaryStrideFilter");
+        const statusFilter = document.getElementById("summaryStatusFilter");
+        const ownerFilter = document.getElementById("summaryOwnerFilter");
+        const summaryMetrics = document.getElementById("summaryMetrics");
+        const strideSummaryChart = document.getElementById("strideSummaryChart");
+        const statusSummaryChart = document.getElementById("statusSummaryChart");
+        const ownerSummaryChart = document.getElementById("ownerSummaryChart");
+        if (!strideFilter || !statusFilter || !ownerFilter || !summaryMetrics || !strideSummaryChart || !statusSummaryChart || !ownerSummaryChart) return;
+
+        const strideValue = strideFilter.value;
+        const statusValue = statusFilter.value;
+        const ownerValue = ownerFilter.value;
+
+        const filtered = cards.filter((card) => {
+          const strideMatch = strideValue === "all" || card.dataset.stride === strideValue;
+          const statusMatch = statusValue === "all" || card.dataset.status === statusValue;
+          const ownerMatch = ownerValue === "all" || getThreatOwner(card) === ownerValue;
+          return strideMatch && statusMatch && ownerMatch;
+        });
+
+        const total = filtered.length;
+        const open = filtered.filter((card) => card.dataset.status === "Open").length;
+        const critical = filtered.filter((card) => card.dataset.risk === "Critical").length;
+        const high = filtered.filter((card) => card.dataset.risk === "High").length;
+
+        summaryMetrics.innerHTML = `
+          <div class="stat-card"><div class="stat-label">Matching threats</div><div class="stat-value">${total}</div></div>
+          <div class="stat-card"><div class="stat-label">Open</div><div class="stat-value">${open}</div></div>
+          <div class="stat-card risk-critical"><div class="stat-label">Critical</div><div class="stat-value">${critical}</div></div>
+          <div class="stat-card risk-high"><div class="stat-label">High</div><div class="stat-value">${high}</div></div>
+        `;
+
+        const strideMap = {};
+        const statusMap = {};
+        const ownerMap = {};
+        filtered.forEach((card) => {
+          const stride = card.dataset.stride || "Unspecified";
+          const status = card.dataset.status || "Open";
+          const owner = getThreatOwner(card);
+          strideMap[stride] = (strideMap[stride] || 0) + 1;
+          statusMap[status] = (statusMap[status] || 0) + 1;
+          ownerMap[owner] = (ownerMap[owner] || 0) + 1;
+        });
+
+        const maxStride = Math.max(1, ...Object.values(strideMap));
+        const maxStatus = Math.max(1, ...Object.values(statusMap));
+        const maxOwner = Math.max(1, ...Object.values(ownerMap));
+
+        strideSummaryChart.innerHTML = buildSummaryRows(strideMap, total, maxStride);
+        statusSummaryChart.innerHTML = buildSummaryRows(statusMap, total, maxStatus);
+        ownerSummaryChart.innerHTML = buildSummaryRows(ownerMap, total, maxOwner);
+      }
+
+      function applyThreatFilters() {
+        const strideFilter = document.getElementById("strideFilter");
+        const statusFilter = document.getElementById("statusFilter");
+        if (!strideFilter || !statusFilter) return;
+
+        const strideValue = strideFilter.value;
+        const statusValue = statusFilter.value;
+        document.querySelectorAll(".threat-card").forEach((card) => {
+          const matchesStride = strideValue === "all" || card.dataset.stride === strideValue;
+          const matchesStatus = statusValue === "all" || card.dataset.status === statusValue;
+          card.classList.toggle("hidden", !(matchesStride && matchesStatus));
+        });
+        updateSummary();
+      }
+
+      function parseCsvLine(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        values.push(current);
+        return values.map((v) => v.trim());
+      }
+
+      function collectThreatState() {
+        const state = {};
+        document.querySelectorAll(".threat-card").forEach((card) => {
+          updateThreatCardMetadata(card);
+          const id = card.dataset.id;
+          const ownerField = card.querySelector('[data-field="owner"]');
+          const statusField = card.querySelector('[data-field="status"]');
+          const remarksField = card.querySelector('[data-field="remarks"]');
+          state[id] = {
+            id,
+            title: card.querySelector("h3")?.textContent?.replace(/^.*? — /, "") || "",
+            stride: card.dataset.stride || "",
+            element: (card.querySelector("p")?.textContent || "").replace(/^DFD element:\s*/, "") || "",
+            dfd_ref: card.querySelectorAll(".badge")[1]?.textContent || "",
+            description: card.dataset.description || "",
+            impact: card.dataset.impact || "",
+            likelihood: card.dataset.likelihood || "",
+            risk: card.dataset.risk || "",
+            mitigations: (card.dataset.mitigations || "").split(" | ").filter(Boolean),
+            status: statusField ? statusField.value : card.dataset.status || "Open",
+            owner: ownerField ? ownerField.value : "",
+            remarks: remarksField ? remarksField.value : "",
+          };
+        });
+        return state;
+      }
+
+      function persistThreats() {
+        const state = collectThreatState();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const modelScript = document.getElementById("threat-model-json");
+        if (modelScript) {
+          try {
+            const model = JSON.parse(modelScript.textContent || "{}");
+            model.threats = Object.values(state).map((item) => ({
+              ...item,
+              mitigations: item.mitigations || [],
+              owner: item.owner || "",
+              remarks: item.remarks || "",
+            }));
+            modelScript.textContent = JSON.stringify(model, null, 2);
+          } catch (err) {
+            // ignore JSON script update failures
+          }
+        }
+        updateSaveStatus("Saved locally in this browser.");
+        refreshSummaryOwnerOptions();
+        updateSummary();
+      }
+
+      function restoreThreats() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        try {
+          const state = JSON.parse(raw);
+          Object.entries(state).forEach(([id, item]) => {
+            const card = document.querySelector(`.threat-card[data-id="${CSS.escape(id)}"]`);
+            if (!card) return;
+            const ownerField = card.querySelector('[data-field="owner"]');
+            const statusField = card.querySelector('[data-field="status"]');
+            const remarksField = card.querySelector('[data-field="remarks"]');
+            if (ownerField) ownerField.value = item.owner || "";
+            if (statusField) {
+              statusField.value = item.status || "Open";
+              card.dataset.status = statusField.value;
+            }
+            if (remarksField) remarksField.value = item.remarks || "";
+            card.dataset.owner = item.owner || "";
+            card.dataset.remarks = item.remarks || "";
+            updateThreatCardMetadata(card);
+          });
+        } catch (err) {
+          // ignore invalid saved data
+        }
+      }
+
+      function addThreatCardFromCsv(row) {
+        const threatList = document.getElementById("threatList");
+        if (!threatList) return;
+        const existing = document.querySelector(`.threat-card[data-id="${CSS.escape(row.id)}"]`);
+        if (existing) return;
+
+        const article = document.createElement("article");
+        const riskClass = (row.risk || "Medium").toLowerCase().replace(/\s+/g, "-");
+        article.className = `threat-card risk-${riskClass}`;
+        article.id = `threat-${row.id}`;
+        article.dataset.id = row.id;
+        article.dataset.stride = row.stride || "Unspecified";
+        article.dataset.status = row.status || "Open";
+        article.dataset.risk = row.risk || "Medium";
+        article.dataset.owner = row.owner || "";
+        article.dataset.description = row.description || "";
+        article.dataset.impact = row.impact || "";
+        article.dataset.likelihood = row.likelihood || "";
+        article.dataset.mitigations = row.mitigations || "";
+        article.dataset.remarks = row.remarks || "";
+        article.innerHTML = `
+          <header>
+            <h3>${row.id} — ${row.title || "Untitled threat"}</h3>
+            <div class="meta">
+              <span class="badge">${row.stride || "Unspecified"}</span>
+              <span class="badge">${row.dfd_ref || "N/A"}</span>
+              <span class="badge risk-${riskClass}">${row.risk || "Medium"}</span>
+              <span class="badge">${row.status || "Open"}</span>
+            </div>
+          </header>
+          <p><strong>DFD element:</strong> ${row.element || "N/A"}</p>
+          <p>${row.description || ""}</p>
+          <div class="split">
+            <p><strong>Impact:</strong> ${row.impact || ""}</p>
+            <p><strong>Likelihood:</strong> ${row.likelihood || ""}</p>
+          </div>
+          <p><strong>Mitigations</strong></p>
+          <ul>${(row.mitigations || "").split("|").map((m) => `<li>${m.trim()}</li>`).join("") || "<li>None noted</li>"}</ul>
+          <div class="threat-editor-grid">
+            <label>
+              <span>Owner</span>
+              <input type="text" class="threat-field" data-field="owner" value="${row.owner || ""}" placeholder="Assigned owner" />
+            </label>
+            <label>
+              <span>Status</span>
+              <select class="threat-field" data-field="status">
+                <option value="Open" ${row.status === "Open" ? "selected" : ""}>Open</option>
+                <option value="Mitigated" ${row.status === "Mitigated" ? "selected" : ""}>Mitigated</option>
+                <option value="Accepted" ${row.status === "Accepted" ? "selected" : ""}>Accepted</option>
+                <option value="Rejected" ${row.status === "Rejected" ? "selected" : ""}>Rejected</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Remarks</span>
+            <textarea class="threat-field" data-field="remarks" rows="4" placeholder="Add notes, caveats, or follow-up actions">${row.remarks || ""}</textarea>
+          </label>
+        `;
+        threatList.appendChild(article);
+        bindThreatFieldEvents(article);
+        updateThreatCardMetadata(article);
+        refreshSummaryOwnerOptions();
+        updateSummary();
+      }
+
+      function importCsv(csvText) {
+        const lines = csvText.split(/\r?\n/).filter((line) => line.trim());
+        if (lines.length < 2) {
+          updateSaveStatus("CSV file must include a header row and at least one threat row.");
+          return;
+        }
+
+        const headers = parseCsvLine(lines[0]).map((header) => header.trim().toLowerCase());
+        const rows = lines.slice(1).map((line) => {
+          const values = parseCsvLine(line);
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || "";
+          });
+          return row;
+        }).filter((row) => row.id && row.id.trim());
+
+        if (!rows.length) {
+          updateSaveStatus("No threat rows found in the CSV file.");
+          return;
+        }
+
+        rows.forEach((row) => {
+          const card = document.querySelector(`.threat-card[data-id="${CSS.escape(row.id)}"]`);
+          if (!card) {
+            addThreatCardFromCsv(row);
+            return;
+          }
+
+          const ownerField = card.querySelector('[data-field="owner"]');
+          const statusField = card.querySelector('[data-field="status"]');
+          const remarksField = card.querySelector('[data-field="remarks"]');
+          if (ownerField) ownerField.value = row.owner || "";
+          if (statusField) statusField.value = row.status || "Open";
+          if (remarksField) remarksField.value = row.remarks || "";
+          card.dataset.status = row.status || "Open";
+          card.dataset.owner = row.owner || "";
+          card.dataset.remarks = row.remarks || "";
+          card.dataset.risk = row.risk || card.dataset.risk || "Medium";
+          card.dataset.stride = row.stride || card.dataset.stride || "Unspecified";
+          card.dataset.description = row.description || card.dataset.description || "";
+          card.dataset.impact = row.impact || card.dataset.impact || "";
+          card.dataset.likelihood = row.likelihood || card.dataset.likelihood || "";
+          card.dataset.mitigations = row.mitigations || card.dataset.mitigations || "";
+          const titleEl = card.querySelector("h3");
+          if (titleEl) titleEl.innerHTML = `${row.id} — ${row.title || titleEl.textContent.replace(/^.*? — /, "")}`;
+          const badgeNodes = card.querySelectorAll(".badge");
+          if (badgeNodes.length >= 4) {
+            badgeNodes[0].textContent = row.stride || badgeNodes[0].textContent;
+            badgeNodes[1].textContent = row.dfd_ref || badgeNodes[1].textContent;
+            badgeNodes[2].textContent = row.risk || badgeNodes[2].textContent;
+            badgeNodes[3].textContent = row.status || badgeNodes[3].textContent;
+          }
+          const descText = card.querySelectorAll("p")[1];
+          if (descText) descText.textContent = row.description || descText.textContent;
+          const splitP = card.querySelectorAll(".split p");
+          if (splitP[0]) splitP[0].innerHTML = `<strong>Impact:</strong> ${row.impact || ""}`;
+          if (splitP[1]) splitP[1].innerHTML = `<strong>Likelihood:</strong> ${row.likelihood || ""}`;
+          const list = card.querySelector("ul");
+          if (list) {
+            const rawMitigations = row.mitigations ? String(row.mitigations).split("|") : [];
+            list.innerHTML = (rawMitigations.length ? rawMitigations : ["None noted"]).map((m) => `<li>${m.trim()}</li>`).join("");
+          }
+          updateThreatCardMetadata(card);
+        });
+
+        refreshSummaryOwnerOptions();
+        applyThreatFilters();
+        updateSummary();
+        persistThreats();
+        updateSaveStatus(`Imported ${rows.length} threat rows from CSV.`);
+      }
+
+      function exportCsv() {
+        const rows = [["id", "title", "stride", "element", "dfd_ref", "description", "impact", "likelihood", "risk", "mitigations", "status", "owner", "remarks"]];
+
+        getThreatCards().forEach((card) => {
+          updateThreatCardMetadata(card);
+          const id = card.dataset.id || "";
+          const title = card.querySelector("h3")?.textContent?.replace(/^.*? — /, "") || "";
+          const stride = card.dataset.stride || "";
+          const element = (card.querySelector("p")?.textContent || "").replace(/^DFD element:\s*/, "") || "";
+          const dfdRef = card.querySelectorAll(".badge")[1]?.textContent || "";
+          const description = card.dataset.description || "";
+          const impact = card.dataset.impact || "";
+          const likelihood = card.dataset.likelihood || "";
+          const risk = card.dataset.risk || "";
+          const mitigations = (card.dataset.mitigations || "").split(" | ").filter(Boolean).join("|");
+          const status = card.querySelector('[data-field="status"]')?.value || card.dataset.status || "Open";
+          const owner = card.querySelector('[data-field="owner"]')?.value || "";
+          const remarks = card.querySelector('[data-field="remarks"]')?.value || "";
+          rows.push([id, title, stride, element, dfdRef, description, impact, likelihood, risk, mitigations, status, owner, remarks]);
+        });
+
+        const escapeCsv = (value) => {
+          const stringValue = String(value ?? "");
+          const needsQuotes = /[",\n]/.test(stringValue);
+          return needsQuotes ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+        };
+
+        const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "threats.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        updateSaveStatus("Threat list exported as CSV.");
+      }
+
+      function saveHtmlSnapshot() {
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: "text/html;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "threat_model_report.html";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        persistThreats();
+        updateSaveStatus("HTML snapshot saved and browser state updated.");
+      }
+
+      function bindThreatFieldEvents(card) {
+        card.querySelectorAll(".threat-field").forEach((field) => {
+          field.addEventListener("input", () => {
+            updateThreatCardMetadata(card);
+            if (field.dataset.field === "status") {
+              card.dataset.status = field.value;
+            }
+            if (field.dataset.field === "owner") {
+              card.dataset.owner = field.value;
+            }
+            if (field.dataset.field === "remarks") {
+              card.dataset.remarks = field.value;
+            }
+            refreshSummaryOwnerOptions();
+            applyThreatFilters();
+            updateSummary();
+            persistThreats();
+          });
+          field.addEventListener("change", () => {
+            updateThreatCardMetadata(card);
+            refreshSummaryOwnerOptions();
+            applyThreatFilters();
+            updateSummary();
+            persistThreats();
+          });
+        });
+      }
+
+      const strideFilter = document.getElementById("strideFilter");
+      const statusFilter = document.getElementById("statusFilter");
+      const summaryStrideFilter = document.getElementById("summaryStrideFilter");
+      const summaryStatusFilter = document.getElementById("summaryStatusFilter");
+      const summaryOwnerFilter = document.getElementById("summaryOwnerFilter");
+
+      if (strideFilter) strideFilter.addEventListener("change", applyThreatFilters);
+      if (statusFilter) statusFilter.addEventListener("change", applyThreatFilters);
+      if (summaryStrideFilter) summaryStrideFilter.addEventListener("change", updateSummary);
+      if (summaryStatusFilter) summaryStatusFilter.addEventListener("change", updateSummary);
+      if (summaryOwnerFilter) summaryOwnerFilter.addEventListener("change", updateSummary);
+
+      document.getElementById("saveThreatsBtn")?.addEventListener("click", persistThreats);
+      document.getElementById("exportCsvBtn")?.addEventListener("click", exportCsv);
+      document.getElementById("downloadHtmlBtn")?.addEventListener("click", saveHtmlSnapshot);
+      document.getElementById("importCsvInput")?.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => importCsv(String(reader.result || ""));
+        reader.readAsText(file);
+        event.target.value = "";
+      });
+
+      getThreatCards().forEach((card) => {
+        updateThreatCardMetadata(card);
+        bindThreatFieldEvents(card);
+      });
+
+      restoreThreats();
+      refreshSummaryOwnerOptions();
+      applyThreatFilters();
+      updateSummary();
+      renderDfd();
+
+      const buttons = document.querySelectorAll(".tabs button");
+      const panels = document.querySelectorAll(".panel");
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          buttons.forEach((b) => {
+            b.classList.remove("active");
+            b.setAttribute("aria-selected", "false");
+          });
+          panels.forEach((p) => p.classList.remove("active"));
+          button.classList.add("active");
+          button.setAttribute("aria-selected", "true");
+          document.getElementById(button.dataset.tab).classList.add("active");
+          if (button.dataset.tab === "dfd") {
+            renderDfd();
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
